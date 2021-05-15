@@ -40,7 +40,7 @@ def print_homefolder_of_process_owner(username, pid):
     if username == 'root':
         return sys.stdout.write("/root/")
     else:
-        return sys.stdout.write(Process(pid).cwd())
+        return sys.stdout.write(Process(pid).cwd() + "\n")
 
 
 def print_all_PPIDs_as_list(list_of_dicts):
@@ -48,7 +48,7 @@ def print_all_PPIDs_as_list(list_of_dicts):
     for element in list_of_dicts:
         parent_pids.append(element['ppid'])
     parent_pids.pop()
-    sys.stdout.write(parent_pids)
+    sys.stdout.write(str(parent_pids) + "\n")
 
 
 def check_for_invalid_flags():
@@ -61,9 +61,10 @@ def check_for_invalid_flags():
 
 def _set_pid(dest_attr, argv_length):
     if len(sys.argv) == argv_length:
-        pid_if_none_given = sys.argv[-1]
-        if pid_exists(int(pid_if_none_given)):
-            args.__setattr__(dest_attr, pid_if_none_given)
+        pid_if_given = sys.argv[-1]
+        if pid_exists(int(pid_if_given)):
+            args.__setattr__(dest_attr, pid_if_given)
+            return pid_if_given
         else:
             sys.stderr.write("Invalid PID!\n")
             exit()
@@ -71,6 +72,7 @@ def _set_pid(dest_attr, argv_length):
         pid_if_none_given = parser.get_default("[<PROCESS_ID>]")
         args.__setattr__(dest_attr, pid_if_none_given)
         sys.argv.append(pid_if_none_given)
+    return pid_if_none_given
 
 
 def determine_arguments_and_flags_given():
@@ -89,13 +91,21 @@ def determine_arguments_and_flags_given():
         _set_pid('homefolder', 4)
         return ["p", "f"]
 
-#def choose_action_to_do(given_flags):
-    #for flag in
+
+def choose_action_to_do(given_flags):
+    for flag in given_flags:
+        if flag == "f":
+            username = Process(int(args.homefolder)).username()
+            print_homefolder_of_process_owner(username, int(args.homefolder))
+
+        if flag == "p":
+            dict_of_processes = get_given_process_and_parent_info_as_list_of_dicts(int(args.pid), ['pid', 'ppid'])
+            print_all_PPIDs_as_list(dict_of_processes)
+
 
 if __name__ == "__main__":
     check_for_invalid_flags()
     parser = define_parser_with_arguments()
     args = parser.parse_args()
     given_flags = determine_arguments_and_flags_given()
-    #choose_action_to_do(given_flags)
-    print(args)
+    choose_action_to_do(given_flags)
