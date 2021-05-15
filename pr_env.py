@@ -2,7 +2,6 @@
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from psutil import Process, pid_exists
 import sys
-from pandas.io.parsers import ParserError
 
 
 def define_parser_with_arguments():
@@ -43,29 +42,31 @@ def print_homefolder_of_process_owner(username):
         return print(Process(pid).cwd())
 
 
-def print_all_parent_PID_as_list(list_of_dicts):
+def print_all_PPIDs_as_list(list_of_dicts):
     parent_pids = []
     for element in list_of_dicts:
         parent_pids.append(element['ppid'])
     parent_pids.pop()
     print(parent_pids)
 
+
 def check_for_invalid_flags():
     valid_flags = ['-p', "--pid", "-f", "--homefolder"]
     for flag in sys.argv[1:]:
-        if flag not in valid_flags:
+        if (flag not in valid_flags) and not flag.isalnum():
             sys.stderr.write("Invalid Argument found!\n")
             exit()
+
 
 if __name__ == "__main__":
     check_for_invalid_flags()
     parser = define_parser_with_arguments()
     args = parser.parse_args()
-    print(args)
-    if isinstance(sys.argv[-1], int):
-        parser.error("PID must be an Integer!")
     if len(sys.argv) == 1:
         pid = parser.get_default("[<PROCESS_ID>]")
+        sys.argv.append(pid)
     else:
         pid = sys.argv[-1]
+    if not isinstance(int(sys.argv[-1]), int):
+        parser.error("PID must be an Integer")
     print(pid)
