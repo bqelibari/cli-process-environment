@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-from argparse import ArgumentParser, RawDescriptionHelpFormatter, MetavarTypeHelpFormatter
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from psutil import Process, pid_exists
 import sys
-from pathlib import Path
-import subprocess
 
 
 def define_parser_with_arguments():
@@ -13,19 +11,17 @@ def define_parser_with_arguments():
                         all options were given."
 
     parser = ArgumentParser(description=description_text,
-                            formatter_class=MetavarTypeHelpFormatter,
+                            formatter_class=RawDescriptionHelpFormatter,
                             usage="%(prog)s [-h|--help] [-p|--pid] [-f|--homefolder] [<PROCESS_ID>]")
 
     pid_help_str = "Show a list of all the parent process ids of the given <PROCESS_ID>."
-    add_argument_to_parser(parser, '-p', '--pid', pid_help_str)
+    parser.add_argument('-p', '--pid', metavar="", type=int, help=pid_help_str)
 
     homefolder_help_str = "Show the path to the process owner‘s homefolder."
-    add_argument_to_parser(parser, '-f', '--homefolder', homefolder_help_str)
-    return parser.parse_args()
+    parser.add_argument('-f', '--homefolder', metavar="", type=int, help=homefolder_help_str)
 
-
-def add_argument_to_parser(parser, short_flag, long_flag, help_str):
-    parser.add_argument(short_flag, long_flag, help=help_str)
+    parser.add_argument("[<PROCESS_ID>]", nargs='?', default=Process().pid, type=int)
+    return parser
 
 
 def get_given_process_and_parent_info_as_list_of_dicts(pid: int) -> list[dict]:
@@ -46,20 +42,31 @@ def print_homefolder_of_process_owner(username):
         return print(Process(pid).cwd())
 
 
-def format_and_print_PID_and_PPID_info(list_of_dicts):
+def print_all_parent_PID_as_list(list_of_dicts):
+    parent_pids = []
     for element in list_of_dicts:
-        print(f"PID: {element['pid']} | Name: {element['name']} | PPID: {element['ppid']} | "
-              f"User:{element['username']} | Status: {element['status']}")
+        parent_pids.append(element['ppid'])
+    parent_pids.pop()
+    print(parent_pids)
+
+
+def invalid_args(args):
+    possible_arguments = ["-p", "--pid", "-f", "--homefolder"]
+    for arg in sys.argv[1:]:
+        if arg not in possible_arguments:
+            parser.error("Invalid flag(s)!")
+            return False
 
 
 if __name__ == "__main__":
-    args = define_parser_with_arguments()
-    pid = int(sys.argv[-1])
-    if args.homefolder:
-        print_homefolder_of_process_owner(Process(pid).username())
-    if args.pid:
-        if not pid_exists(pid):
-            print("Invalid <PROCESS-ID>")
-        else:
-            proc_info_list_of_dicts = get_given_process_and_parent_info_as_list_of_dicts(pid)
-            format_and_print_PID_and_PPID_info(proc_info_list_of_dicts)
+    parser = define_parser_with_arguments()
+    if isinstance(sys.argv[-1], int):
+        parser.error("PID must be an Integer!")
+    args = parser.parse_args()
+    if invalid_args(sys.argv[1:]):
+        exit()
+    if len(sys.argv) == 1:
+        pid = parser.get_default("[<PROCESS_ID>]")
+    else:
+        pid = sys.argv[-1]
+    print(pid)
